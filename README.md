@@ -1,3 +1,5 @@
+# *ESTE REPOSITORIO CONTIENE EL BACKEND DEL PROYECTO.
+
 # Proyecto de la clase de Aplicaciones de Vanguardia
 
 ## Descripción del proyecto:
@@ -33,3 +35,6 @@
 ###         Total: 20 pts + 3 extras.
 ## Fecha de entrega máxima: 29 de marzo, 2020.
 
+# REPOSITORIO DEL FRONTEND:
+
+[Link del repo] : https://github.com/miguelhasbun/Proyecto_AppsdeVanguardia_FrontEnd
