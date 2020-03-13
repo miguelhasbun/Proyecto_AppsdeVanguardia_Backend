@@ -1,4 +1,7 @@
 var mongoose= require("mongoose");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken'); 
+
 
 //mongoose.connect("mongodb://localhost/ProyectoVanguardia", {useNewUrlParser: true,useUnifiedTopology: true});
 
@@ -11,7 +14,29 @@ const userSchemaJson = mongoose.Schema({
     nombre: {type: String, required: true},
     usuario: {type: String, required: true},
     clave: {type: String, required: true},
-    img: {type: String, required: true}
+    img: {type: String, required: true},
+    faceID: {type: String, required: true}
 });
+/*
+//antes de guardar el usuario encripta la contraseña
+userSchemaJson.pre('save', function(next){
+    var user= this;
 
+    if (!user.isModified('clave')) return next();
+
+    bcrypt.hash(user.clave, null, null, function(err, hash){
+        if (err) return next(err);
+        
+        //cambiando la contraseña
+        user.clave= hash;
+        next();
+    });
+});
+/*
+//comparar la clave
+userSchemaJson.methods.comparePassword= function (clave){
+    var user= this;
+    return bcrypt.compareSync(clave, user.clave);
+}
+*/
 module.exports= mongoose.model('users', userSchemaJson);
