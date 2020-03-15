@@ -1,6 +1,7 @@
 "use strict";
 var User= require('../Models/UserModel');
 const mongoose = require('mongoose');
+const Encryptation= require('../Utils/Encryptation');
 
 //listo todos los usuarios
 exports.listar_usuarios = async function(req, res){
@@ -11,25 +12,6 @@ exports.listar_usuarios = async function(req, res){
         console.log(error);
         res.status(500).send({message: "Error al traer los usuarios"});
     }
-}
-//creo un usuario
-exports.crear_usuarios= async function(req, res){
-    try {
-        const user = new User({
-            _id: new mongoose.Types.ObjectId,
-            nombre: req.body.nombre,
-            usuario: req.body.usuario,
-            clave: req.body.clave,
-            img: req.body.img
-        }); 
-       const us= await user.save(); 
-       console.log(us);
-       res.status(200).send({message: "Creado con exito"});
-    } catch (error) {
-        console.log(error);
-        res.status(500).send({message: "Error al crear el usuario"});
-    }
-    
 }
 exports.modificar_usuarios= async function(req, res){
     try {
@@ -78,5 +60,36 @@ exports.buscar_usuarios= async function(req, res){
     } catch (error) {
         console.log(error);
         res.status(500).send({message: "Ocurrió un error mientras se buscaba el usuario"}); 
+    }
+}
+
+exports.register= async function(req, res){
+    //validando el usuario único y correo único
+    const usertemp= req.body.usuario;
+    const emailtemp= req.body.email;
+    try {
+        const respuestausuario= await User.find({usuario:  usertemp});
+        const respuestaemail= await User.find({email: emailtemp});
+        if (respuestausuario.length !== 0 || respuestaemail.length !==0){ //si devuelve vacio es que no encontró un usuario o email con esos
+            res.status(500).json({message: "usuario ya existe"});
+        }
+        
+        const enc= Encryptation.genPassword(req.body.clave);
+        const user = new User({
+            _id: new mongoose.Types.ObjectId,
+            nombre: req.body.nombre,
+            apellido: req.body.apellido,
+            usuario: req.body.usuario,
+            clave: enc,  //clave encriptada
+            img: req.body.img,
+            faceID: req.body.faceID,
+            email: req.body.email
+        }); 
+       const us= await user.save(); 
+       console.log(us);
+       res.status(200).send({message: "Creado con exito"});
+        
+    } catch (error) {
+        console.log(error);
     }
 }
