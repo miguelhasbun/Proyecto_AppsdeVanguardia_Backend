@@ -1,3 +1,4 @@
+
 "use strict";
 
 module.exports = function(app) {
@@ -10,10 +11,10 @@ module.exports = function(app) {
 
   //usuarios
   app.route("/users").get(usercontroller.listar_usuarios);
-  app.route("/users/post").post(usercontroller.crear_usuarios);
   app.route("/users/delete/:id").delete(usercontroller.borrar_usuarios);
   app.route("/users/get/:id").get(usercontroller.buscar_usuarios);
   app.route("/users/puts/:id").put(usercontroller.modificar_usuarios);
-  app.route("/users/login").post(usercontroller.login);
-  //app.route("/FaceAPI/post/").post(facialreconizerservices.register);
+
+  app.route("/users/register").post(usercontroller.register);
 };
+
