@@ -1,7 +1,9 @@
 "use strict";
 var User= require('../Models/UserModel');
 const mongoose = require('mongoose');
+
 const Encryptation= require('../Utils/Encryptation');
+
 
 //listo todos los usuarios
 exports.listar_usuarios = async function(req, res){
@@ -63,6 +65,7 @@ exports.buscar_usuarios= async function(req, res){
     }
 }
 
+
 exports.register= async function(req, res){
     //validando el usuario único y correo único
     const usertemp= req.body.usuario;
@@ -93,3 +96,53 @@ exports.register= async function(req, res){
         console.log(error);
     }
 }
+
+
+exports.login= function(req,res){
+    var imageData,
+        clave= req.body.clave
+    
+    if(!req.body.clave && !req.body.faceID){
+        res.statusCode=400;
+        res.json({message:'Contraseña o Foto es requerida'});
+        return;
+    }
+    User.findOne({usuario: req.body.usuario}).select('users usuario clave faceID').exec(function(err,user){
+        if(err||!user){
+            res.statusCode=403;
+            res.json({message: 'Usuario no encontrado'});
+            return;
+        }
+
+        if(clave){
+            var validClave= user.clave == clave;
+            if (!validClave){
+                res.statusCode= 403;
+                res.json({message : "Error al iniciar la sesión"});
+
+            }else{
+                res.status(500);
+            }
+
+        }else{
+            if(req.body.image){
+                imageData=Buffer.from(req.body.image.split(",")[1],'base64');
+            }
+            if (imageData){
+                Faceapi.faceDetect(imageData, 
+                    function(msDetectData){
+                        if (msDetectData[0]){
+                            Faceapi.faceCompare(user.faceID, msDetectData[0].faceID, function (msCompareData){
+                                if (msCompareData.isIdentical && msCompareData.confidence >= config.FACE_API_CONFIDENCE_TRESHOLD){
+                                    res.status(500);
+                                }else{
+                                    res.status(403);
+                                }
+                            });
+                        }
+                    })
+            }
+        }
+    })
+}
+

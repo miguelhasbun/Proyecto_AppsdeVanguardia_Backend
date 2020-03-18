@@ -1,4 +1,7 @@
 var mongoose= require("mongoose");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken'); 
+
 
 //mongoose.connect("mongodb://localhost/ProyectoVanguardia", {useNewUrlParser: true,useUnifiedTopology: true});
 
@@ -18,5 +21,12 @@ const userSchemaJson = mongoose.Schema({
     faceID: {type: String, required: true},
     email: {type: String, required: true}
 });
+/*
+//antes de guardar el usuario encripta la contraseña
+userSchemaJson.pre('save', function(next){
+    var user= this;
+
+    if (!user.isModified('clave')) return next();
+
 
 module.exports= mongoose.model('users', userSchemaJson);
