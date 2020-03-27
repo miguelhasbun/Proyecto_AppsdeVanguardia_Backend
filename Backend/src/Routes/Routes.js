@@ -15,6 +15,7 @@ module.exports = function(app) {
   app.route("/users/get/:id").get(usercontroller.buscar_usuarios);
   app.route("/users/puts/:id").put(usercontroller.modificar_usuarios);
 
-  app.route("/users/register").post(usercontroller.register);
+  app.route("/register").post(usercontroller.register);
+  app.route("/login").post(usercontroller.login);
 };
 

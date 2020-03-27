@@ -17,7 +17,6 @@ const userSchemaJson = mongoose.Schema({
     apellido: {type: String, required: true},
     usuario: {type: String, required: true},
     clave: {type: String, required: true},
-    img: {type: String, required: true},
     faceID: {type: String, required: true},
     email: {type: String, required: true}
 });
@@ -28,5 +27,5 @@ userSchemaJson.pre('save', function(next){
 
     if (!user.isModified('clave')) return next();
 
-
-module.exports= mongoose.model('users', userSchemaJson);
+*/
+module.exports= mongoose.model('user', userSchemaJson);
