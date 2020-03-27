@@ -13,7 +13,7 @@ var config = require('./config');
  * @param {*} onSuccess success callback
  * @param {*} onError error callback
  */
-export function faceDetect(imageData, onSuccess, onError) {
+function faceDetect(imageData, onSuccess, onError) {
     var msDetectOptions = {
         host: config.FACE_API_HOST,
         method: 'POST',
@@ -32,7 +32,6 @@ export function faceDetect(imageData, onSuccess, onError) {
             onSuccess(JSON.parse(msDetectData));
         });
     });
-
     msDetectReq.on('error', onError);
     msDetectReq.write(imageData);
     msDetectReq.end();
@@ -45,7 +44,7 @@ export function faceDetect(imageData, onSuccess, onError) {
  * @param {*} onSuccess success callback
  * @param {*} onError error callback
  */
-export function faceCompare(faceId1, faceId2, onSuccess, onError) {
+ function faceCompare(faceId1, faceId2, onSuccess, onError) {
     var msVerifyOptions = {
         host: config.FACE_API_HOST,
         method: 'POST',
@@ -67,3 +66,7 @@ export function faceCompare(faceId1, faceId2, onSuccess, onError) {
     msVerifyReq.write(JSON.stringify({faceId1: faceId1, faceId2: faceId2}));
     msVerifyReq.end();
 }
+
+
+exports.faceDetect=faceDetect;
+exports.faceCompare=faceCompare;
