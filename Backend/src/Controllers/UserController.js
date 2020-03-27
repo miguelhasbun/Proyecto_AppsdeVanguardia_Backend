@@ -1,10 +1,11 @@
 "use strict";
 var User= require('../Models/UserModel');
 const mongoose = require('mongoose');
-
-const Encryptation= require('../Utils/Encryptation');
 const FaceAPI = require('../Services/FaceDetection');
 const config= require('../Services/config');
+const jwt =require('jsonwebtoken');
+
+const Encryptation= require('../Utils/Encryptation');
 
 
 //listo todos los usuarios
@@ -102,63 +103,33 @@ exports.register= async function(req, res){
                             clave: enc,  //clave encriptada
                             email: req.body.email
                         });
-                        const us= await user.save(); 
-                        res.status(200).send({message: `Creado con exito\n ${us}`});
+                        const _user= await user.save();
+
+                        jwt.sign({_user},config.KEY_SECRET,(err,token)=>{
+                            res.status(200).json({
+                                message:"El usuario ha sido creado exitosamente!",
+                                token,
+                                _user
+
+                            });
+                        });
+                      // res.status(200).send({message: `Creado con exito\n ${us}`});
 
                     }else if(!msDetectData.length){
-                        faceMessage = 'No face was recognized.'
+                        faceMessage = 'No se ha reconocido ningura cara'
                     }else {
-                        faceMessage = 'More than one face was recognized.'
+                        faceMessage = 'Mas de una cara ha sido reconocida'
                     }
                     if(!_FaceID){
                         res.status(500).json({message:faceMessage});
                     }
                 },
                 function(error) {
-                    // if an error occurs during face detection, inform user 
-                    // the account will be created without any faceId anyways
+                    console.log(error);
                     res.status(500).json({message:"Error durante el reconocimiento facial"})
                 }
             );
-        }
-       
-     /*   if(req.body.image) {
-            // call face detection
-            FaceAPI.faceDetect(Buffer.from(req.body.image.split(",")[1], 'base64'),
-                function(msDetectData) {
-                    var faceMessage = '';
-                    // face will only be saved if only one face is recognized
-                    // if no face or more than one face is recognized, the user will be informed
-                    // the account will be created without any faceId anyways
-                    if(msDetectData.length === 1){
-                        user.faceID = msDetectData[0].faceId;
-                        Console.log(user.faceID);
-                    }
-                    else if(!msDetectData.length){
-                        faceMessage = 'No face was recognized.'
-                    }
-                    else {
-                        faceMessage = 'More than one face was recognized.'
-                    }
-                 
-                },
-                function(error) {
-                    // if an error occurs during face detection, inform user 
-                    // the account will be created without any faceId anyways
-                    user.save(function(error){
-                        var faceMessage = 'Face recognition failed';
-                        if(error) {
-                            // if an error occurs during save, send 500
-                            res.statusCode = 500;
-                            res.json({message:JSON.stringify(error)});
-                            return;
-                        }
-                    });
-                });
-        }*/
-    
-       
-        
+        }    
     } catch (error) {
         console.log(error);
     }
@@ -179,40 +150,48 @@ exports.login= async function(req,res){
             res.status(500).json({message:"Se requiere una clave o una imagen"});
         }
         if(req.body.clave){
-            const validPassword= req.body.clave===result.clave;
-            if(validPassword)
-                res.status(200).json({message:"Inicio de sesion exitosamente"}); 
-            else
+            const validPassword= result.comparePassword(req.body.clave);//req.body.clave===result.clave;
+            if(validPassword){
+                jwt.sign({result},config.KEY_SECRET,(error,token)=>{
+                    res.status(200).json({
+                        message:"Iniciando sesion con reconocimiento facial",
+                        token
+                    });
+                });
+            }else
                 res.status(500).json({message:"Credenciales no aceptadas"});
         }
         else if(req.body.image) {
             const imageData=Buffer.from(req.body.image.split(",")[1],'base64');
             if(imageData){
-                console.log("Llamando a face detect");
                 FaceAPI.faceDetect(imageData, 
                     function(msDetectData){
-                        console.log("dentro ms msDetectData");
                         if (msDetectData[0]){
-                            console.log("Llamando a faceCompare");
                             FaceAPI.faceCompare(result.faceID, msDetectData[0].faceId,
                                 function (msCompareData){
-                                    console.log("Dentro de face compare");
                                     if (msCompareData.isIdentical && msCompareData.confidence >= config.FACE_API_CONFIDENCE_TRESHOLD){
-                                        res.status(200).json({message:"Iniciando sesion con reconocimiento facial"});
+                                        jwt.sign({result},config.KEY_SECRET,(error,token)=>{
+                                            res.status(200).json({
+                                                message:"Iniciando sesion con reconocimiento facial",
+                                                token
+                                            });
+                                        });
+                                       // res.status(200).json({message:"Iniciando sesion con reconocimiento facial"});
                                     }else{
                                         res.status(403).json({message:"No se pudo iniciar sesion con reconocimiento facial"});
+                                    }
+                                },function(error){
+                                    console.log(error);
+                                    res.status(500).json({message:"Hubo un error al momento de iniciar sesion"});
                                 }
-                            },function(error){
-                                console.log(error);
-                                res.status(500).json({message:"Hubo un error al momento de iniciar sesion"});
-                            });
-                    }
+                            );
+                        }
                     },
                     function(error){
                         console.log(error);
                         res.status(500).json({message:"Hubo un error al momento de iniciar sesion"});
-                    });
-
+                    }
+                );
             }
         }else{
             res.status(500).json({message:"No ha sido detectada ninguna imagen"});
@@ -222,52 +201,6 @@ exports.login= async function(req,res){
         console.log(error);
         res.status(500).json({message:"Error al momento de loggear"});
     }
-/*        clave= req.body.clave
-    
-    if(!req.body.clave ){
-        res.statusCode=400;
-        res.json({message:'Contraseña o Foto es requerida'});
-        return;
-    }
-    User.findOne({usuario: req.body.usuario}).select('users usuario clave faceID').exec(function(err,user){
-        if(err||!user){
-            res.statusCode=403;
-            res.json({message: 'Usuario no encontrado'});
-            return;
-        }
 
-        if(clave){
-            var validClave= user.clave == clave;
-            if (!validClave){
-                res.statusCode= 403;
-                res.json({message : "Error al iniciar la sesión"});
-                return;
-
-            }else{
-                res.status(500);
-            }
-
-        }else{
-            if(req.body.image){
-                imageData=Buffer.from(req.body.image.split(",")[1],'base64');
-            }
-            if (imageData){
-                Faceapi.faceDetect(imageData, 
-                    function(msDetectData){
-                        if (msDetectData[0]){
-                            Faceapi.faceCompare(user.faceID, msDetectData[0].faceID, function (msCompareData){
-                                if (msCompareData.isIdentical && msCompareData.confidence >= config.FACE_API_CONFIDENCE_TRESHOLD){
-                                    res.status(500);
-                                }else{
-                                    res.status(403);
-                                    return;
-                                }
-                            });
-                        }
-                    })
-            }
-        }
-        
-    })*/
 }
 
