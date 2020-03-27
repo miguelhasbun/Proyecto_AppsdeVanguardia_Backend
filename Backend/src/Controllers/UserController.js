@@ -71,23 +71,29 @@ exports.buscar_usuarios= async function(req, res){
 
 exports.register= async function(req, res){
     //validando el usuario único y correo único
-    const usertemp= req.body.usuario;
-    const emailtemp= req.body.email;
+    const _usuario  = req.body.usuario;
+    const _email    = req.body.email;
+    const _clave    = req.body.clave;
+    const _image    = req.body.image;
+    const _nombre   = req.body.nombre;
+    const _apellido = req.body.apellido;
     let _FaceID;
-    try {
-        const respuestausuario= await User.find({usuario:  usertemp});
-        const respuestaemail= await User.find({email: emailtemp});
-        if (respuestausuario.length !== 0 || respuestaemail.length !==0){ //si devuelve vacio es que no encontró un usuario o email con esos
-            res.status(500).json({message: "usuario ya existe"});
-        }
-        
-        const enc= Encryptation.genPassword(req.body.clave);
 
-        if(!req.body.image){
+    try {
+        const _result=await User.find({$or:[{usuario:_usuario},{email:_email}]});
+        console.log("Resultado: "+_result.length)
+        if (_result.length){ //si devuelve vacio es que no encontró un usuario o email con esos
+            res.status(500).json({message: "Usuario ya existe"});
+        }
+
+        //Incriptando Contraseña
+        const _clave_encrypt= Encryptation.genPassword(_clave);
+
+        if(!_image){
             res.status(500).json({message:"Imagen Requerida"});
         }
 
-        const imageData=Buffer.from(req.body.image.split(",")[1],'base64');
+        const imageData=Buffer.from(_image.split(",")[1],'base64');
         if(imageData){
             FaceAPI.faceDetect(imageData,
                 async function(msDetectData) {
@@ -96,14 +102,16 @@ exports.register= async function(req, res){
                         _FaceID= msDetectData[0].faceId;
                         const user = new User({
                             _id: new mongoose.Types.ObjectId,
-                            nombre: req.body.nombre,
-                            apellido: req.body.apellido,
-                            usuario: req.body.usuario,
+                            nombre: _nombre,
+                            apellido:_apellido,
+                            usuario: _usuario,
                             faceID:_FaceID,
-                            clave: enc,  //clave encriptada
-                            email: req.body.email
+                            clave: _clave_encrypt,  //clave encriptada
+                            email: _email
                         });
-                        const _user= await user.save();
+                        let _user;
+                        if(!_result.length)
+                            _user= await user.save();
 
                         jwt.sign({_user},config.KEY_SECRET,(err,token)=>{
                             res.status(200).json({
@@ -113,7 +121,6 @@ exports.register= async function(req, res){
 
                             });
                         });
-                      // res.status(200).send({message: `Creado con exito\n ${us}`});
 
                     }else if(!msDetectData.length){
                         faceMessage = 'No se ha reconocido ningura cara'
@@ -137,22 +144,27 @@ exports.register= async function(req, res){
 
 
 exports.login= async function(req,res){
+
+    const _usuario  =   req.body.usuario;
+    const _clave    =   req.body.clave;
+    const _image    =   req.body.image;
+
     try {
-        if(!req.body.user){
+        if(!_usuario){
             res.status(500).json({message:"Porfavor ingrese un usuario"});
         }
-        const result= await User.findOne({usuario:req.body.user}).select('users usuario clave faceID');
-        if(!result){
+        const _result= await User.findOne({usuario:_usuario}).select('users usuario clave faceID');
+        if(!_result){
             res.status(500).json({message:"Usuario no encontrado"}); 
         }
 
-        if(!req.body.clave && !req.body.image){
+        if(!_clave && !_image){
             res.status(500).json({message:"Se requiere una clave o una imagen"});
         }
-        if(req.body.clave && req.body.clave!=='undefine'){
-            const validPassword= result.comparePassword(req.body.clave);//req.body.clave===result.clave;
-            if(validPassword){
-                jwt.sign({result},config.KEY_SECRET,(error,token)=>{
+        if(_clave && _clave!=='undefine'){
+            const _validPassword= _result.comparePassword(req.body.clave);//req.body.clave===result.clave;
+            if(_validPassword){
+                jwt.sign({_result},config.KEY_SECRET,(error,token)=>{
                     res.status(200).json({
                         message:"Iniciando sesion con contraseña",
                         token
@@ -161,16 +173,16 @@ exports.login= async function(req,res){
             }else
                 res.status(500).json({message:"Usuario o Contraseña no validos"});
         }
-        else if(req.body.image) {
-            const imageData=Buffer.from(req.body.image.split(",")[1],'base64');
+        else if(_image) {
+            const imageData=Buffer.from(_image.split(",")[1],'base64');
             if(imageData){
                 FaceAPI.faceDetect(imageData, 
                     function(msDetectData){
                         if (msDetectData[0]){
-                            FaceAPI.faceCompare(result.faceID, msDetectData[0].faceId,
+                            FaceAPI.faceCompare(_result.faceID, msDetectData[0].faceId,
                                 function (msCompareData){
                                     if (msCompareData.isIdentical && msCompareData.confidence >= config.FACE_API_CONFIDENCE_TRESHOLD){
-                                        jwt.sign({result},config.KEY_SECRET,(error,token)=>{
+                                        jwt.sign( {_result}, config.KEY_SECRET, (error,token)=>{
                                             res.status(200).json({
                                                 message:"Iniciando sesion con reconocimiento facial",
                                                 token
