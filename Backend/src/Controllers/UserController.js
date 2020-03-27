@@ -149,17 +149,17 @@ exports.login= async function(req,res){
         if(!req.body.clave && !req.body.image){
             res.status(500).json({message:"Se requiere una clave o una imagen"});
         }
-        if(req.body.clave){
+        if(req.body.clave && req.body.clave!=='undefine'){
             const validPassword= result.comparePassword(req.body.clave);//req.body.clave===result.clave;
             if(validPassword){
                 jwt.sign({result},config.KEY_SECRET,(error,token)=>{
                     res.status(200).json({
-                        message:"Iniciando sesion con reconocimiento facial",
+                        message:"Iniciando sesion con contraseña",
                         token
                     });
                 });
             }else
-                res.status(500).json({message:"Credenciales no aceptadas"});
+                res.status(500).json({message:"Usuario o Contraseña no validos"});
         }
         else if(req.body.image) {
             const imageData=Buffer.from(req.body.image.split(",")[1],'base64');
