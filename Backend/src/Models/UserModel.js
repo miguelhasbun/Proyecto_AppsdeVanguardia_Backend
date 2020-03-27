@@ -20,12 +20,22 @@ const userSchemaJson = mongoose.Schema({
     faceID: {type: String, required: true},
     email: {type: String, required: true}
 });
-/*
-//antes de guardar el usuario encripta la contraseña
-userSchemaJson.pre('save', function(next){
-    var user= this;
 
-    if (!user.isModified('clave')) return next();
+/*userSchemaJson.pre('save', function(next){
+	var user = this;
+	if(!user.isModified('clave')) return next();
+	bcrypt.hash(user.clave, null, null, function(err, hash){
+		if (err) return next(err);
 
+		user.clave = hash;
+		next();
+	});
+});
 */
+//method to compare a given password with the database hash
+userSchemaJson.methods.comparePassword = function(password) {
+	var user = this;
+	return bcrypt.compareSync(password, user.clave);
+};
+
 module.exports= mongoose.model('user', userSchemaJson);
